@@ -107,6 +107,7 @@ ErrorType Lane::GetOrientationByArcLength(const decimal_t arc_length,
   return kSuccess;
 }
 
+// 用于根据给定的二维向量位置 vec_position 计算弧长 arc_length
 ErrorType Lane::GetArcLengthByVecPosition(const Vecf<LaneDim>& vec_position,
                                           decimal_t* arc_length) const {
   if (!IsValid()) {

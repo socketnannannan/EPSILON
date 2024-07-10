@@ -95,7 +95,7 @@ class Spline {
     int num_pts = vec_domain_.size();
     if (num_pts < 1) return kIllegalInput;
 
-    auto it = std::lower_bound(vec_domain_.begin(), vec_domain_.end(), s);
+    auto it = std::lower_bound(vec_domain_.begin(), vec_domain_.end(), s);// 找到第一个不小于 s 的元素的迭代器 it
     int idx = std::max(static_cast<int>(it - vec_domain_.begin()) - 1, 0);
     decimal_t h = s - vec_domain_[idx];
 

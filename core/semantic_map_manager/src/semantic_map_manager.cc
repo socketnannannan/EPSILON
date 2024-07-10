@@ -585,7 +585,7 @@ ErrorType SemanticMapManager::GetDistanceToLanesUsing3DofState(
     std::set<std::tuple<decimal_t, decimal_t, decimal_t, int>> *res) const {
   for (const auto &p : semantic_lane_set_.semantic_lanes) {
     decimal_t arc_len;
-    p.second.lane.GetArcLengthByVecPosition(Vec2f(state(0), state(1)),
+    p.second.lane.GetArcLengthByVecPosition(Vec2f(state(0), state(1)),  // 得到弧长arc_len
                                             &arc_len);
 
     // decimal_t arc_len2;
@@ -604,10 +604,10 @@ ErrorType SemanticMapManager::GetDistanceToLanesUsing3DofState(
     if (dist > lane_range_) continue;
 
     decimal_t lane_angle;
-    p.second.lane.GetOrientationByArcLength(arc_len, &lane_angle);
-    decimal_t angle_diff = normalize_angle(lane_angle - state(2));
+    p.second.lane.GetOrientationByArcLength(arc_len, &lane_angle);  // 根据弧长计算车道的方向角 得到转角
+    decimal_t angle_diff = normalize_angle(lane_angle - state(2));  // 转角差
 
-    res->insert(std::tuple<decimal_t, decimal_t, decimal_t, int>(
+    res->insert(std::tuple<decimal_t, decimal_t, decimal_t, int>( // 得到所有adc到车道的距离、弧长和方向角差
         dist, arc_len, angle_diff, p.second.id));
   }
 #if 0
@@ -756,12 +756,12 @@ ErrorType SemanticMapManager::IsTopologicallyReachable(
   return kSuccess;
 }
 
-ErrorType SemanticMapManager::GetNearestLaneIdUsingState(
+ErrorType SemanticMapManager::GetNearestLaneIdUsingState(  
     const Vec3f &state, const std::vector<int> &navi_path, int *id,
     decimal_t *distance, decimal_t *arc_len) const {
   // tuple: dist, arc_len, angle_diff, id
   std::set<std::tuple<decimal_t, decimal_t, decimal_t, int>> lanes_in_dist;
-  if (GetDistanceToLanesUsing3DofState(state, &lanes_in_dist) != kSuccess) {
+  if (GetDistanceToLanesUsing3DofState(state, &lanes_in_dist) != kSuccess) { // adc到所有车道的距离、弧长和方向角差 
     return kWrongStatus;
   }
 
@@ -820,8 +820,8 @@ ErrorType SemanticMapManager::GetNearestLaneIdUsingState(
         std::get<3>(ele)));
   }
   if (lanes_in_angle_diff.empty() ||
-      std::get<0>(*lanes_in_angle_diff.begin()) > kPi / 2) {
-    // Use the nearest lane with suitable angle diff
+      std::get<0>(*lanes_in_angle_diff.begin()) > kPi / 2) {  // 最近车道反向
+    // Use the nearest lane with suitable angle diff  
     for (const auto &ele : lanes_in_dist) {
       if (std::get<2>(ele) < kPi / 2) {
         *id = std::get<3>(ele);
