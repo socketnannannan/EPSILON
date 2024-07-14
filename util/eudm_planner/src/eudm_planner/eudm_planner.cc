@@ -60,7 +60,7 @@ ErrorType EudmPlanner::Init(const std::string config) {
             << dcp_tree_ptr_->action_script().size() << std::endl;
 
   GetSimParam(cfg_.sim().ego(), &ego_sim_param_);
-  GetSimParam(cfg_.sim().agent(), &agent_sim_param_);
+  GetSimParam(cfg_.sim().agent(), &agent_sim_param_); 
 
   rss_config_ = common::RssChecker::RssConfig(
       cfg_.safety().rss().response_time(),

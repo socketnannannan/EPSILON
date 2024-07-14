@@ -102,25 +102,25 @@ ErrorType StateTransformer::GetStateVectorFromFrenetStates(
   }
   return kSuccess;
 }
-
+// 将全局坐标系下的状态 State 转换为 Frenet 坐标系下的状态 FrenetState
 ErrorType StateTransformer::GetFrenetStateFromState(const State& s,
                                                     FrenetState* fs) const {
   if (!lane_.IsValid()) {
     return kIllegalInput;
   }
-
+  // 根据全局坐标获取弧长：
   decimal_t arc_length;
   if (lane_.GetArcLengthByVecPosition(s.vec_position, &arc_length) !=
       kSuccess) {
     return kWrongStatus;
   }
-
+  // 获取指定弧长处的曲率及其导数：
   decimal_t curvature, curvature_derivative;
   if (lane_.GetCurvatureByArcLength(arc_length, &curvature,
                                     &curvature_derivative) != kSuccess) {
     return kWrongStatus;
   }
-
+  // 根据弧长获取路径点和切向向量：
   Vecf<2> lane_position;
   if (lane_.GetPositionByArcLength(arc_length, &lane_position) != kSuccess) {
     return kWrongStatus;
@@ -133,7 +133,7 @@ ErrorType StateTransformer::GetFrenetStateFromState(const State& s,
   }
   decimal_t lane_orientation = vec2d_to_angle(lane_tangent_vec);
   Vecf<2> lane_normal_vec = Vecf<2>(-lane_tangent_vec[1], lane_tangent_vec[0]);
-
+  // 检查投影是否偏离：
   const decimal_t step_tolerance = 0.5;
   if (fabs((s.vec_position - lane_position).dot(lane_tangent_vec)) >
       step_tolerance) {
@@ -147,7 +147,7 @@ ErrorType StateTransformer::GetFrenetStateFromState(const State& s,
   //   //        s.angle, lane_orientation);
   //   return kWrongStatus;
   // }
-
+  // 计算 Frenet 坐标系下的横向位移 d 和 delta_theta：
   decimal_t d = (s.vec_position - lane_position).dot(lane_normal_vec);
   decimal_t one_minus_curd = 1 - curvature * d;
   if (one_minus_curd < kEPS) {
@@ -155,7 +155,7 @@ ErrorType StateTransformer::GetFrenetStateFromState(const State& s,
     return kWrongStatus;
   }
   decimal_t delta_theta = normalize_angle(s.angle - lane_orientation);
-
+  // 计算 Frenet 坐标系下的纵向位移 ds 和加速度 dss：
   decimal_t cn_delta_theta = cos(delta_theta);
   decimal_t tan_delta_theta = tan(delta_theta);
   decimal_t ds = one_minus_curd * tan_delta_theta;
@@ -164,7 +164,7 @@ ErrorType StateTransformer::GetFrenetStateFromState(const State& s,
       one_minus_curd / pow(cn_delta_theta, 2) *
           (s.curvature * one_minus_curd / cn_delta_theta - curvature);
   decimal_t sp = s.velocity * cn_delta_theta / one_minus_curd;
-
+  // 计算 Frenet 坐标系下的加速度 spp：
   decimal_t delta_theta_derivative =
       1 / (1 + pow(tan_delta_theta, 2)) *
       (dss * one_minus_curd + curvature * pow(ds, 2)) / pow(one_minus_curd, 2);
@@ -175,7 +175,7 @@ ErrorType StateTransformer::GetFrenetStateFromState(const State& s,
            (one_minus_curd * tan_delta_theta * delta_theta_derivative -
             (curvature_derivative * d + curvature * ds))) *
       cn_delta_theta / one_minus_curd;
-
+  // 加载 Frenet 坐标系状态：
   fs->Load(Vecf<3>(arc_length, sp, spp), Vecf<3>(d, ds, dss),
            FrenetState::kInitWithDs);
   fs->time_stamp = s.time_stamp;

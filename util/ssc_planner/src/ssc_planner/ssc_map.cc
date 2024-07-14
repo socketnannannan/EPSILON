@@ -67,8 +67,8 @@ ErrorType SscMap::ConstructSscMap(
     const vec_E<Vec2f> &obstacle_grids) {
   p_3d_grid_->clear_data();
   p_3d_inflated_grid_->clear_data();
-  FillStaticPart(obstacle_grids);
-  FillDynamicPart(sur_vehicle_trajs_fs);
+  FillStaticPart(obstacle_grids);         // 填充静态障碍物
+  FillDynamicPart(sur_vehicle_trajs_fs);  // 填充动态轨迹
   return kSuccess;
 }
 
@@ -94,10 +94,10 @@ ErrorType SscMap::ClearDrivingCorridor() {
   driving_corridor_vec_.clear();
   return kSuccess;
 }
-
+// 用于基于给定的初始轨迹在3D网格地图上构建驾驶走廊
 ErrorType SscMap::ConstructCorridorUsingInitialTrajectory(
     GridMap3D *p_grid, const vec_E<common::FsVehicle> &trajs) {
-  // ~ Stage I: Get seeds
+  // ~ Stage I: Get seeds 初始化种子点 将初始状态和轨迹中的每个状态转换为网格坐标，并保存这些坐标作为种子点。
   vec_E<Vec3i> traj_seeds;
   int num_states = static_cast<int>(trajs.size());
   if (num_states > 1) {
@@ -143,7 +143,7 @@ ErrorType SscMap::ConstructCorridorUsingInitialTrajectory(
     }
   }
 
-  // ~ Stage II: Inflate cubes
+  // ~ Stage II: Inflate cubes 遍历所有种子点，为每个种子点创建立方体并进行膨胀。如果立方体不自由（被障碍物占据），记录错误并标记走廊无效。
   common::DrivingCorridor driving_corridor;
   bool is_valid = true;
   auto seed_num = static_cast<int>(traj_seeds.size());
@@ -639,7 +639,7 @@ bool SscMap::CheckIfCubeContainsSeed(
   }
   return true;
 }
-
+// 从3D网格地图构造最终的全局时间空间立方体列表
 ErrorType SscMap::GetFinalGlobalMetricCubesList() {
   final_corridor_vec_.clear();
   if_corridor_valid_.clear();

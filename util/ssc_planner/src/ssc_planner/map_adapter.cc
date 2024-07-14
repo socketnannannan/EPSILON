@@ -64,7 +64,7 @@ ErrorType SscPlannerAdapter::GetForwardTrajectories(
   *sur_trajs = map_->ego_behavior().surround_trajs;
   return kSuccess;
 }
-
+// 获取当前车辆的横向行为
 ErrorType SscPlannerAdapter::GetEgoDiscretBehavior(
     LateralBehavior* lat_behavior) {
   if (!is_valid_) return kWrongStatus;

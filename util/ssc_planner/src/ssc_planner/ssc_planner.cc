@@ -91,48 +91,48 @@ ErrorType SscPlanner::RunOnce() {
 
   static TicToc timer_prepare;
   timer_prepare.tic();
-  if (map_itf_->GetEgoVehicle(&ego_vehicle_) != kSuccess) {
+  if (map_itf_->GetEgoVehicle(&ego_vehicle_) != kSuccess) {  // 拿车辆类
     LOG(ERROR) << "[Ssc]fail to get ego vehicle info.";
     return kWrongStatus;
   }
 
   // plan state
   if (!has_initial_state_) {
-    initial_state_ = ego_vehicle_.state();
+    initial_state_ = ego_vehicle_.state();  // 初始车辆状态
   }
   has_initial_state_ = false;
 
-  is_lateral_independent_ =
+  is_lateral_independent_ =  // 与横向无关??
       initial_state_.velocity > cfg_.planner_cfg().low_speed_threshold()
           ? true
           : false;
-  if (map_itf_->GetLocalReferenceLane(&nav_lane_local_) != kSuccess) {
+  if (map_itf_->GetLocalReferenceLane(&nav_lane_local_) != kSuccess) {  // 没有导航车道线
     LOG(ERROR) << "[Ssc]fail to find ego lane.";
     return kWrongStatus;
   }
-  stf_ = common::StateTransformer(nav_lane_local_);
-
+  stf_ = common::StateTransformer(nav_lane_local_);  // 导航车道和参考线转换？？
+  // 将全局坐标系下的状态 State 转换为 Frenet 坐标系下的状态 FrenetState
   if (stf_.GetFrenetStateFromState(initial_state_, &initial_frenet_state_) !=
       kSuccess) {
     LOG(ERROR) << "[Ssc]fail to get init state frenet state.";
     return kWrongStatus;
   }
-
+  // 获取当前车辆的横向行为
   if (map_itf_->GetEgoDiscretBehavior(&ego_behavior_) != kSuccess) {
     LOG(ERROR) << "[Ssc]fail to get ego behavior.";
     return kWrongStatus;
   }
-
+  // 加载障碍物地图
   if (map_itf_->GetObstacleMap(&grid_map_) != kSuccess) {
     LOG(ERROR) << "[Ssc]fail to get obstacle map.";
     return kWrongStatus;
   }
-
+  // 加载障碍物网格
   if (map_itf_->GetObstacleGrids(&obstacle_grids_) != kSuccess) {
     LOG(ERROR) << "[Ssc]fail to get obstacle grids.";
     return kWrongStatus;
   }
-
+  // 获取前向轨迹：
   if (map_itf_->GetForwardTrajectories(&forward_behaviors_, &forward_trajs_,
                                        &surround_forward_trajs_) != kSuccess) {
     LOG(ERROR) << "[Ssc]fail to get forward trajectories.";
@@ -144,7 +144,7 @@ ErrorType SscPlanner::RunOnce() {
 
   static TicToc timer_stf;
   timer_stf.tic();
-  if (StateTransformForInputData() != kSuccess) {
+  if (StateTransformForInputData() != kSuccess) {  // 状态转换：得到环境信息
     LOG(ERROR) << "[Ssc]fail to transform state into ff.";
     return kWrongStatus;
   }
@@ -154,13 +154,14 @@ ErrorType SscPlanner::RunOnce() {
   static TicToc timer_sscmap;  // ! SscMap part sometimes can be very slow
                                // ! (Maybe CPU scheduling?)
   timer_sscmap.tic();
+  // 构建SSC地图和走廊：
   time_origin_ = initial_state_.time_stamp;
-  p_ssc_map_->ResetSscMap(initial_frenet_state_);
-  // ~ For closed-loop simulation prediction
+  p_ssc_map_->ResetSscMap(initial_frenet_state_);   // 初始化地图
+  // ~ For closed-loop simulation prediction用于闭环仿真预测
   int num_behaviors = forward_behaviors_.size();
   for (int i = 0; i < num_behaviors; ++i) {
     if (!cfg_.planner_cfg().is_fitting_only()) {
-      if (p_ssc_map_->ConstructSscMap(surround_forward_trajs_fs_[i],
+      if (p_ssc_map_->ConstructSscMap(surround_forward_trajs_fs_[i], //障碍物填充
                                       obstacle_grids_fs_)) {
         LOG(ERROR) << "[Ssc]fail to construct ssc map.";
         return kWrongStatus;
@@ -172,13 +173,13 @@ ErrorType SscPlanner::RunOnce() {
     // p_ssc_map_->InflateObstacleGrid(ego_vehicle_.param());
     // printf("[SscPlanner] InflateObstacleGrid time cost: %lf ms\n",
     //        timer_infl.toc());
-    if (p_ssc_map_->ConstructCorridorUsingInitialTrajectory(
+    if (p_ssc_map_->ConstructCorridorUsingInitialTrajectory( // 用于基于给定的初始轨迹在3D网格地图上构建驾驶走廊
             p_ssc_map_->p_3d_grid(), forward_trajs_fs_[i]) != kSuccess) {
       LOG(ERROR) << "[Ssc]fail to construct corridor for behavior " << i;
       return kWrongStatus;
     }
   }
-  if (kSuccess != p_ssc_map_->GetFinalGlobalMetricCubesList()) {
+  if (kSuccess != p_ssc_map_->GetFinalGlobalMetricCubesList()) { // 从3D网格地图构造最终的全局时间空间立方体列表
     LOG(ERROR) << "[Ssc]fail to get final corridor";
     return kWrongStatus;
   }
@@ -188,6 +189,7 @@ ErrorType SscPlanner::RunOnce() {
 
   static TicToc timer_opt;
   timer_opt.tic();
+  // QP优化：
   if (RunQpOptimization() != kSuccess) {
     LOG(ERROR) << "[Ssc]fail to optimize qp trajectories.\n";
     return kWrongStatus;
