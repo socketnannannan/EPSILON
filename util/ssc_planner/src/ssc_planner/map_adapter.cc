@@ -52,7 +52,7 @@ ErrorType SscPlannerAdapter::GetForwardTrajectories(
   *trajs = map_->ego_behavior().forward_trajs;
   return kSuccess;
 }
-
+// 获取车辆的前进轨迹信息
 ErrorType SscPlannerAdapter::GetForwardTrajectories(
     std::vector<LateralBehavior>* behaviors,
     vec_E<vec_E<common::Vehicle>>* trajs,

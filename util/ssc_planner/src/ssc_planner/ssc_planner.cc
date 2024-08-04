@@ -117,7 +117,7 @@ ErrorType SscPlanner::RunOnce() {
     LOG(ERROR) << "[Ssc]fail to get init state frenet state.";
     return kWrongStatus;
   }
-  // 获取当前车辆的横向行为
+  // 获取车辆的横向行为
   if (map_itf_->GetEgoDiscretBehavior(&ego_behavior_) != kSuccess) {
     LOG(ERROR) << "[Ssc]fail to get ego behavior.";
     return kWrongStatus;
@@ -127,7 +127,7 @@ ErrorType SscPlanner::RunOnce() {
     LOG(ERROR) << "[Ssc]fail to get obstacle map.";
     return kWrongStatus;
   }
-  // 加载障碍物网格
+  // 填充加载障碍物网格
   if (map_itf_->GetObstacleGrids(&obstacle_grids_) != kSuccess) {
     LOG(ERROR) << "[Ssc]fail to get obstacle grids.";
     return kWrongStatus;
@@ -253,10 +253,10 @@ ErrorType SscPlanner::RunQpOptimization() {
                  << " has no valid corridor.";
       continue;
     }
-
+    // 获取 forward_trajs_fs_ 中的对应车辆轨迹，并获取状态数量。
     auto fs_vehicle_traj = forward_trajs_fs_[i];
     int num_states = static_cast<int>(fs_vehicle_traj.size());
-
+    // 定义并初始化 start_constraints，即起始约束条件。
     vec_E<Vecf<2>> start_constraints;
     start_constraints.push_back(
         Vecf<2>(ego_frenet_state_.vec_s[0], ego_frenet_state_.vec_dt[0]));
@@ -270,6 +270,7 @@ ErrorType SscPlanner::RunQpOptimization() {
     // printf("[Inconsist]Start sd position (%lf, %lf).\n",
     // start_constraints[0](0),
     //        start_constraints[0](1));
+    // 定义并初始化 end_constraints, 即终止约束条件。
     vec_E<Vecf<2>> end_constraints;
     end_constraints.push_back(
         Vecf<2>(fs_vehicle_traj[num_states - 1].frenet_state.vec_s[0],
@@ -438,7 +439,7 @@ ErrorType SscPlanner::StateTransformForInputData() {
   int num_v;
 
   // ~ Stage I. Package states and points
-  // * Ego vehicle state and vertices
+  // * Ego vehicle state and vertices   初始点填充
   {
     global_state_vec.push_back(initial_state_);
     vec_E<Vec2f> v_vec;
@@ -448,7 +449,7 @@ ErrorType SscPlanner::StateTransformForInputData() {
     global_point_vec.insert(global_point_vec.end(), v_vec.begin(), v_vec.end());
   }
 
-  // * Ego forward simulation trajs states and vertices
+  // * Ego forward simulation trajs states and vertices  轨迹点填充
   {
     common::VehicleParam ego_param = ego_vehicle_.param();
     for (int i = 0; i < (int)forward_trajs_.size(); ++i) {
@@ -469,10 +470,10 @@ ErrorType SscPlanner::StateTransformForInputData() {
 
   // * Surrounding vehicle trajs from MPDM
   {
-    for (int i = 0; i < surround_forward_trajs_.size(); ++i) {
-      for (auto it = surround_forward_trajs_[i].begin();
-           it != surround_forward_trajs_[i].end(); ++it) {
-        for (int k = 0; k < it->second.size(); ++k) {
+    for (int i = 0; i < surround_forward_trajs_.size(); ++i) { // 每辆车
+      for (auto it = surround_forward_trajs_[i].begin();  // 每辆车轨迹
+           it != surround_forward_trajs_[i].end(); ++it) { 
+        for (int k = 0; k < it->second.size(); ++k) {    // 轨迹点
           // states
           State traj_state = it->second[k].state();
           global_state_vec.push_back(traj_state);
@@ -519,7 +520,7 @@ ErrorType SscPlanner::StateTransformForInputData() {
   {
     fs_ego_vehicle_.frenet_state = frenet_state_vec[offset];
     fs_ego_vehicle_.vertices.clear();
-    for (int i = 0; i < num_v; ++i) {
+    for (int i = 0; i < num_v; ++i) {   // 顶点数
       fs_ego_vehicle_.vertices.push_back(fs_point_vec[offset * num_v + i]);
     }
     offset++;
@@ -529,13 +530,13 @@ ErrorType SscPlanner::StateTransformForInputData() {
   {
     forward_trajs_fs_.clear();
     if (forward_trajs_.size() < 1) return kWrongStatus;
-    for (int j = 0; j < (int)forward_trajs_.size(); ++j) {
+    for (int j = 0; j < (int)forward_trajs_.size(); ++j) {// 轨迹数
       if (forward_trajs_[j].size() < 1) assert(false);
       vec_E<common::FsVehicle> traj_fs;
-      for (int k = 0; k < (int)forward_trajs_[j].size(); ++k) {
+      for (int k = 0; k < (int)forward_trajs_[j].size(); ++k) {  // 轨迹点
         common::FsVehicle fs_v;
         fs_v.frenet_state = frenet_state_vec[offset];
-        for (int i = 0; i < num_v; ++i) {
+        for (int i = 0; i < num_v; ++i) {  // 顶点数
           fs_v.vertices.push_back(fs_point_vec[offset * num_v + i]);
         }
         traj_fs.emplace_back(fs_v);
@@ -614,7 +615,7 @@ ErrorType SscPlanner::StateTransformUsingOpenMp(
   }
   return kSuccess;
 }
-
+// 将全局坐标系中的状态和点转换到 Frenet 坐标系，并将结果存储在指定的向量中
 ErrorType SscPlanner::StateTransformSingleThread(
     const vec_E<State>& global_state_vec, const vec_E<Vec2f>& global_point_vec,
     vec_E<FrenetState>* frenet_state_vec, vec_E<Vec2f>* fs_point_vec) const {

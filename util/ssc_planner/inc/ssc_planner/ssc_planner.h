@@ -166,7 +166,7 @@ class SscPlanner : public Planner {
 
   GridMap2D grid_map_;
   std::set<std::array<decimal_t, 2>> obstacle_grids_;
-  vec_E<vec_E<Vehicle>> forward_trajs_;
+  vec_E<vec_E<Vehicle>> forward_trajs_;  // <本辆车轨迹<轨迹点>>  论文说决策生成多条备用轨迹
   std::vector<LateralBehavior> forward_behaviors_;
   vec_E<std::unordered_map<int, vec_E<Vehicle>>> surround_forward_trajs_;
 
