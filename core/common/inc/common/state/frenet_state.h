@@ -12,8 +12,13 @@ namespace common {
 struct FrenetState {
   enum InitType { kInitWithDt, kInitWithDs };
   decimal_t time_stamp{0.0};
+  // vec_s 表示 Frenet 坐标系中的纵向状态，包括位置、速度和加速度
   Vecf<3> vec_s{Vecf<3>::Zero()};
+
+  // vec_dt 表示 Frenet 坐标系中的横向状态，包括位置、速度和加速度
   Vecf<3> vec_dt{Vecf<3>::Zero()};
+
+  // vec_ds 表示 Frenet 坐标系中的沿曲线切线方向的状态，包括位置、速度和加速度
   Vecf<3> vec_ds{Vecf<3>::Zero()};
   bool is_ds_usable = true;
 

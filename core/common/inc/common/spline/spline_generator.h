@@ -18,8 +18,8 @@
 
 namespace common {
 
-template <int N_DEG, int N_DIM>
-class SplineGenerator {
+template <int N_DEG, int N_DIM>  // 阶数  维度
+class SplineGenerator {  // 用于生成样条曲线
  public:
   typedef Spline<N_DEG, N_DIM> SplineType;
   typedef BezierSpline<N_DEG, N_DIM> BezierSplineType;

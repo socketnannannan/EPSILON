@@ -66,7 +66,7 @@ using Vec2i = Veci<2>;
 using Vec3i = Veci<3>;
 using Vec4i = Veci<4>;
 
-// Workaround with STL container with eigen with fixed size eigen vector
+// Workaround with STL container with eigen with fixed size eigen vector 解决在STL容器中使用固定大小的Eigen向量时的对齐问题
 template <typename T>
 using vec_E = std::vector<T, Eigen::aligned_allocator<T>>;
 

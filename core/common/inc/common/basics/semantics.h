@@ -756,13 +756,13 @@ struct PointVecForKdTree {
     return false;
   }
 };
-
+// 一个多维的时间-空间语义立方体
 template <int N_DIM>
 struct SpatioTemporalSemanticCubeNd {
-  decimal_t t_lb, t_ub;
-  std::array<decimal_t, N_DIM> p_lb, p_ub;
-  std::array<decimal_t, N_DIM> v_lb, v_ub;
-  std::array<decimal_t, N_DIM> a_lb, a_ub;
+  decimal_t t_lb, t_ub;  // 时间的下界和上界
+  std::array<decimal_t, N_DIM> p_lb, p_ub;  // 空间位置的下界和上界
+  std::array<decimal_t, N_DIM> v_lb, v_ub;  // 速度的下界和上界
+  std::array<decimal_t, N_DIM> a_lb, a_ub;  // 加速度的下界和上界
 
   SpatioTemporalSemanticCubeNd() { FillDefaultBounds(); }
 

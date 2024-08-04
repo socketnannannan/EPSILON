@@ -245,7 +245,7 @@ ErrorType SscPlanner::RunQpOptimization() {
   valid_behaviors_.clear();
   corridors_.clear();
   ref_states_list_.clear();
-  for (int i = 0; i < static_cast<int>(cube_list.size()); i++) {
+  for (int i = 0; i < static_cast<int>(cube_list.size()); i++) {  // 遍历每一个走廊
     int beh = static_cast<int>(forward_behaviors_[i]);
     if (if_corridor_valid[i] == 0) {
       LOG(ERROR) << "[Ssc]fail: for behavior "
@@ -257,14 +257,14 @@ ErrorType SscPlanner::RunQpOptimization() {
     auto fs_vehicle_traj = forward_trajs_fs_[i];
     int num_states = static_cast<int>(fs_vehicle_traj.size());
     // 定义并初始化 start_constraints，即起始约束条件。
-    vec_E<Vecf<2>> start_constraints;
+    vec_E<Vecf<2>> start_constraints; 
     start_constraints.push_back(
-        Vecf<2>(ego_frenet_state_.vec_s[0], ego_frenet_state_.vec_dt[0]));
-    start_constraints.push_back(
+        Vecf<2>(ego_frenet_state_.vec_s[0], ego_frenet_state_.vec_dt[0])); //(纵向s， 横向s)
+    start_constraints.push_back(                                           //(纵向v， 横向v)
         Vecf<2>(std::max(ego_frenet_state_.vec_s[1],
                          cfg_.planner_cfg().velocity_singularity_eps()),
                 ego_frenet_state_.vec_dt[1]));
-    start_constraints.push_back(
+    start_constraints.push_back(                                           //(纵向a， 横向a)
         Vecf<2>(ego_frenet_state_.vec_s[2], ego_frenet_state_.vec_dt[2]));
 
     // printf("[Inconsist]Start sd position (%lf, %lf).\n",
@@ -282,8 +282,8 @@ ErrorType SscPlanner::RunQpOptimization() {
     // end_constraints.push_back(
     //     Vecf<2>(fs_vehicle_traj[num_states - 1].frenet_state.vec_s[2],
     //             fs_vehicle_traj[num_states - 1].frenet_state.vec_dt[2]));
-    common::SplineGenerator<5, 2> spline_generator;
-    BezierSpline bezier_spline;
+    common::SplineGenerator<5, 2> spline_generator;   // 5阶2维贝塞尔
+    BezierSpline bezier_spline;                       // 5阶2维贝塞尔
 
     cube_list[i].back().t_ub = fs_vehicle_traj.back().frenet_state.time_stamp;
 
@@ -292,6 +292,7 @@ ErrorType SscPlanner::RunQpOptimization() {
       continue;
     }
 
+    // 从 fs_vehicle_traj 提取参考时间戳、参考点和参考状态
     std::vector<decimal_t> ref_stamps;
     vec_E<Vecf<2>> ref_points;
     vec_E<common::FrenetState> ref_states;
@@ -408,7 +409,7 @@ ErrorType SscPlanner::UpdateTrajectoryWithCurrentBehavior() {
   final_ref_states_ = ref_states_list_[index];
   return kSuccess;
 }
-
+// 检查一系列的时空走廊（cubes）的可行性
 ErrorType SscPlanner::CorridorFeasibilityCheck(
     const vec_E<common::SpatioTemporalSemanticCubeNd<2>>& cubes) {
   int num_cubes = static_cast<int>(cubes.size());

@@ -355,23 +355,25 @@ ErrorType SplineGenerator<N_DEG, N_DIM>::GetSplineFromFreeStateVec(
 
 template <int N_DEG, int N_DIM>
 ErrorType SplineGenerator<N_DEG, N_DIM>::GetBezierSplineUsingCorridor(
-    const vec_E<SpatioTemporalSemanticCubeNd<N_DIM>>& cubes,
-    const vec_E<Vecf<N_DIM>>& start_constraints,
-    const vec_E<Vecf<N_DIM>>& end_constraints,
-    const std::vector<decimal_t>& ref_stamps,
-    const vec_E<Vecf<N_DIM>>& ref_points, const decimal_t& weight_proximity,
-    BezierSplineType* bezier_spline) {
-  int num_segments = static_cast<int>(cubes.size());
-  int num_order = N_DEG + 1;
-  int derivative_degree = 3;
+    const vec_E<SpatioTemporalSemanticCubeNd<N_DIM>>& cubes, // 时空语义地图上下限制
+    const vec_E<Vecf<N_DIM>>& start_constraints,             // 起始点约束
+    const vec_E<Vecf<N_DIM>>& end_constraints,               // 终止点约束
+    const std::vector<decimal_t>& ref_stamps,                // 参考时间戳
+    const vec_E<Vecf<N_DIM>>& ref_points, const decimal_t& weight_proximity, // 参考点  权重参数
+    BezierSplineType* bezier_spline) {                       // 原始贝塞尔构造
+  int num_segments = static_cast<int>(cubes.size());         // 路径分成的段数
+  int num_order = N_DEG + 1;                                 // 阶数 + 1 = 一段控制点个数
+  int derivative_degree = 3;                                 // 导数度
 
   // ~ Stage I: stack objective
-  int total_num_vals = N_DIM * num_segments * num_order;
+  // 初始化稀疏矩阵 Q:Q 用于存储目标函数的二次项
+  int total_num_vals = N_DIM * num_segments * num_order;     // 维度 * 路径分成的段数 * 一段控制点个数 = 优化变量的总数
   Eigen::SparseMatrix<double, Eigen::RowMajor> Q(total_num_vals,
                                                  total_num_vals);
   Q.reserve(
       Eigen::VectorXi::Constant(N_DIM * num_segments * num_order, num_order));
   {
+    // 构建目标函数的二次项:使用贝塞尔曲线的 Hessian 矩阵来构建目标函数的二次项，具体值由路径段的持续时间和导数的阶数决定
     MatNf<N_DEG + 1> hessian =
         BezierUtils<N_DEG>::GetBezierHessianMat(derivative_degree);
     int idx, idy;
@@ -390,7 +392,7 @@ ErrorType SplineGenerator<N_DEG, N_DIM>::GetBezierSplineUsingCorridor(
       }
     }
   }
-
+  // 构建线性项:
   Eigen::VectorXd c;
   c.resize(total_num_vals);
   c.setZero();
@@ -442,7 +444,7 @@ ErrorType SplineGenerator<N_DEG, N_DIM>::GetBezierSplineUsingCorridor(
 
   Q = 2 * (Q + P);  // 0.5 * x' * Q * x
 
-  // ~ Stage II: stack equality constraints
+  // ~ Stage II: stack equality constraints 构建等式约束:
   int num_continuity = 3;  // continuity up to jerk
   int num_connections = num_segments - 1;
   // printf("num conenctions: %d.\n", num_connections);
@@ -465,7 +467,7 @@ ErrorType SplineGenerator<N_DEG, N_DIM>::GetBezierSplineUsingCorridor(
   int idx, idy;
   decimal_t val;
   {
-    // ~ continuity constraints
+    // ~ continuity constraints 连续性约束:
     for (int n = 0; n < num_connections; n++) {
       decimal_t duration_l = cubes[n].t_ub - cubes[n].t_lb;
       decimal_t duration_r = cubes[n + 1].t_ub - cubes[n + 1].t_lb;
@@ -473,6 +475,7 @@ ErrorType SplineGenerator<N_DEG, N_DIM>::GetBezierSplineUsingCorridor(
         decimal_t scale_l = pow(duration_l, 1 - c);
         decimal_t scale_r = pow(duration_r, 1 - c);
         for (int d = 0; d < N_DIM; d++) {
+          // 处理不同的导数阶数
           idx = d * num_connections * num_continuity + n * num_continuity + c;
           if (c == 0) {
             // ~ position end
@@ -551,7 +554,7 @@ ErrorType SplineGenerator<N_DEG, N_DIM>::GetBezierSplineUsingCorridor(
       }
     }
 
-    // ~ start state constraints
+    // ~ start state constraints 起始点和终止点约束:
     {
       int num_order_constraint_start =
           static_cast<int>(start_constraints.size());
@@ -644,7 +647,7 @@ ErrorType SplineGenerator<N_DEG, N_DIM>::GetBezierSplineUsingCorridor(
     }
   }
 
-  // ~ Stage III: stack inequality constraints
+  // ~ Stage III: stack inequality constraints 构建不等式约束:
   int total_num_ineq = 0;
   for (int i = 0; i < num_segments; i++) {
     total_num_ineq += (static_cast<int>(cubes[i].p_ub.size())) * num_order;
@@ -718,7 +721,7 @@ ErrorType SplineGenerator<N_DEG, N_DIM>::GetBezierSplineUsingCorridor(
                       Eigen::VectorXd::Ones(total_num_vals);
   Eigen::VectorXd l = (-u.array()).matrix();
 
-  // ~ Stage IV: solve
+  // ~ Stage IV: solve 构建并求解 QP:
   Eigen::VectorXd x;
   x.setZero(total_num_vals);
   if (!OoQpItf::solve(Q, c, A, b, C, lbd, ubd, l, u, x, true, false)) {
@@ -727,7 +730,7 @@ ErrorType SplineGenerator<N_DEG, N_DIM>::GetBezierSplineUsingCorridor(
   }
 
   // std::cout << "solver result: " << x.transpose() << std::endl;
-  // ~ Stage V: set back to bezier struct
+  // ~ Stage V: set back to bezier struct 将结果转换回贝塞尔曲线:
   std::vector<decimal_t> vec_domain;
   vec_domain.push_back(cubes.front().t_lb);
   for (int n = 0; n < num_segments; n++) {
