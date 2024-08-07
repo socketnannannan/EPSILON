@@ -352,7 +352,7 @@ ErrorType SplineGenerator<N_DEG, N_DIM>::GetSplineFromFreeStateVec(
   }
   return kSuccess;
 }
-
+// common::SplineGenerator<5, 2> spline_generator;   // 5阶2维贝塞尔
 template <int N_DEG, int N_DIM>
 ErrorType SplineGenerator<N_DEG, N_DIM>::GetBezierSplineUsingCorridor(
     const vec_E<SpatioTemporalSemanticCubeNd<N_DIM>>& cubes, // 时空语义地图上下限制
@@ -370,7 +370,7 @@ ErrorType SplineGenerator<N_DEG, N_DIM>::GetBezierSplineUsingCorridor(
   int total_num_vals = N_DIM * num_segments * num_order;     // 维度 * 路径分成的段数 * 一段控制点个数 = 优化变量的总数
   Eigen::SparseMatrix<double, Eigen::RowMajor> Q(total_num_vals,
                                                  total_num_vals);
-  Q.reserve(
+  Q.reserve(                                                 // 稀疏矩阵 Q 为每行保留 num_order 个非零元素的空间，这样可以优化内存分配和提高效率
       Eigen::VectorXi::Constant(N_DIM * num_segments * num_order, num_order));
   {
     // 构建目标函数的二次项:使用贝塞尔曲线的 Hessian 矩阵来构建目标函数的二次项，具体值由路径段的持续时间和导数的阶数决定
@@ -378,11 +378,11 @@ ErrorType SplineGenerator<N_DEG, N_DIM>::GetBezierSplineUsingCorridor(
         BezierUtils<N_DEG>::GetBezierHessianMat(derivative_degree);
     int idx, idy;
     decimal_t val;
-    for (int n = 0; n < num_segments; n++) {
-      decimal_t duration = cubes[n].t_ub - cubes[n].t_lb;
-      for (int d = 0; d < N_DIM; d++) {
-        for (int j = 0; j < num_order; j++) {
-          for (int k = 0; k < num_order; k++) {
+    for (int n = 0; n < num_segments; n++) {                // 遍历 路径分成的段数
+      decimal_t duration = cubes[n].t_ub - cubes[n].t_lb;   // 每段时间跨度
+      for (int d = 0; d < N_DIM; d++) {                     // 遍历 维度（x，y方向）
+        for (int j = 0; j < num_order; j++) {               // 遍历 一段控制点个数
+          for (int k = 0; k < num_order; k++) {             // 遍历 一段控制点个数
             idx = d * num_segments * num_order + n * num_order + j;
             idy = d * num_segments * num_order + n * num_order + k;
             val = hessian(j, k) / pow(duration, 2 * derivative_degree - 3);
@@ -402,7 +402,7 @@ ErrorType SplineGenerator<N_DEG, N_DIM>::GetBezierSplineUsingCorridor(
   P.reserve(
       Eigen::VectorXi::Constant(N_DIM * num_segments * num_order, num_order));
 
-  // * Only position difference is considered
+  // * Only position difference is considered 仅考虑位置差异
   if (!ref_stamps.empty()) {
     int idx, idy;
     int num_ref_samples = ref_stamps.size();
